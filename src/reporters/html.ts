@@ -220,14 +220,6 @@ export async function writeHtml(result: AuditResult, outDir: string) {
       margin-bottom: 25px;
     }
 
-    @media (max-width: 768px) {
-      .heading-validation-summary,
-      .heading-severity-breakdown,
-      .heading-category-reports {
-        margin-top: 16px;
-        margin-bottom: 12px;
-      }
-    }
   </style>
 </head>
 <body>

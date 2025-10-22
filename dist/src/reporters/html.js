@@ -215,7 +215,7 @@ export async function writeHtml(result, outDir) {
       margin-bottom: 25px;
     }
 
-    </style>
+  </style>
 </head>
 <body>
   <div class="page">
