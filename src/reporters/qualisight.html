@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>📊 Qualisight</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-start: #59d6c9;
+        --bg-mid: #7aa6ff;
+        --bg-end: #9a5be8;
+        --card: #0f1724;
+        --card-2: #0f1826;
+        --ink: #e9f0ff;
+        --muted: #bcd1ffcc;
+        --brand: #9adcf0;
+        --green: #14d67a;
+        --red: #ff4d4f;
+        --amber: #f59e0b;
+        --blue: #60a5fa;
+        --cyan: #22d3ee;
+        --violet: #8b5cf6;
+        --chip-bg: #0b2133;
+        --bar-plate: linear-gradient(180deg, #101c30, #0e1a2b);
+        --bar-track: #17304d;
+        --bar-ink: #9fb6ff;
+      }
+      /* light theme overrides (toggled via body.light) */
+      body.light {
+        --card: #ffffff;
+        --card-2: #ffffff;
+        --ink: #0f172a;
+        --muted: #475569;
+        --bar-plate: linear-gradient(180deg, #eef2ff, #e6ecff);
+        --bar-track: #e6edf9;
+        --bar-ink: #334155;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          system-ui,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 600px at 10% 0%, #7eead8 0%, #7eead800 60%),
+          linear-gradient(135deg, var(--bg-start) 0%, #6db7ff 40%, var(--bg-end) 100%);
+        min-height: 100%;
+      }
+      .page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 56px 24px 64px;
+      }
+
+      /* --- menu bar (NEW) --- */
+      .menu {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .menu button {
+        appearance: none;
+        border: 1px solid #28406b;
+        background: #0b1a33;
+        color: #cfe0ff;
+        border-radius: 10px;
+        font-size: 12px;
+        padding: 8px 12px;
+        cursor: pointer;
+        box-shadow: inset 0 0 0 1px #ffffff0a;
+      }
+      body.light .menu button {
+        border-color: #cbd5e1;
+        background: #ffffff;
+        color: #0f172a;
+        box-shadow: inset 0 0 0 1px #00000008;
+      }
+
+      /* Brand row */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .logo {
+        width: 66px;
+        height: 66px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #0a1830, #0b1a33);
+        box-shadow:
+          0 6px 18px #00000026,
+          inset 0 0 0 1px #ffffff12;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 6px;
+        padding: 10px;
+      }
+      .logo span {
+        border-radius: 10px;
+      }
+      .logo .a {
+        background: linear-gradient(180deg, #6ae792, #13c16d);
+      }
+      .logo .b {
+        background: linear-gradient(180deg, #7cd4ff, #3aa7ff);
+      }
+      .logo .c {
+        background: linear-gradient(180deg, #9f7bff, #6c4df3);
+      }
+      .logo .d {
+        background: linear-gradient(180deg, #ffd07a, #ff9f3a);
+      }
+      .wordmark {
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        font-size: 56px;
+        line-height: 1;
+        margin-top: 2px;
+        text-shadow: 0 2px 8px #0000001c;
+      }
+      .tagline {
+        font-size: 36px;
+        font-weight: 600;
+        letter-spacing: -0.2px;
+        margin: 28px 0 36px;
+        color: var(--ink);
+        text-shadow: 0 2px 10px #00000022;
+      }
+      /* Grid of cards */
+      .grid {
+        display: grid;
+        grid-template-columns: 1.05fr 1fr;
+        gap: 24px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 18px;
+        padding: 28px;
+        box-shadow:
+          0 12px 28px #0a0f2026,
+          inset 0 0 0 1px #ffffff0f;
+      }
+      body.light .card {
+        box-shadow:
+          0 8px 18px #00000012,
+          inset 0 0 0 1px #00000008;
+      }
+
+      /* KPI + meta */
+      .kpi {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 6px;
+      }
+      .score {
+        font-size: 48px;
+        font-weight: 800;
+        letter-spacing: -0.3px;
+      }
+      .meta {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .meta b {
+        color: #ffffffd9;
+        font-weight: 600;
+      }
+      body.light .meta b {
+        color: #0f172a;
+      }
+
+      .subhead {
+        font-weight: 700;
+        margin: 18px 0 10px;
+        font-size: 18px;
+      }
+
+      /* Validation Summary list */
+      .list {
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .name {
+        color: #dbe7ff;
+        font-weight: 500;
+      }
+      body.light .name {
+        color: #0f172a;
+      }
+      .name small {
+        opacity: 0.7;
+      }
+      .right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .badge {
+        font-size: 12px;
+        line-height: 20px;
+        min-width: 20px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: #122036;
+        color: #9dc1ff;
+        border: 1px solid #28406b;
+      }
+      body.light .badge {
+        background: #eef2ff;
+        color: #334155;
+        border-color: #cbd5e1;
+      }
+      .tick {
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: rgba(20, 214, 122, 0.12);
+        color: #10d07a;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 700;
+        border: 1px solid rgba(20, 214, 122, 0.35);
+      }
+      .err {
+        background: rgba(255, 77, 79, 0.14);
+        color: #ff6b6d;
+        border-color: rgba(255, 77, 79, 0.35);
+      }
+      body.light .err {
+        background: #fee2e2;
+        color: #b91c1c;
+        border-color: #fecaca;
+      }
+
+      .tiny {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      /* Right card visuals */
+      .chart-wrap {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .h2 {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .viz {
+        display: grid;
+        grid-template-columns: 1fr; /* donut centered as its own row */
+        gap: 18px;
+        align-items: center;
+        justify-items: center; /* centers donut */
+      }
+
+      /* Donut numbers */
+      .donut {
+        width: 260px;
+        height: 260px;
+        position: relative;
+      }
+      .donut .center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 36px;
+        letter-spacing: -0.3px;
+      }
+
+      /* Severity Breakdown (horizontal rows) */
+      .sev-rows {
+        display: grid;
+        gap: 12px;
+      }
+      .sev-row {
+        display: grid;
+        grid-template-columns: 110px 1fr 64px;
+        align-items: center;
+        gap: 12px;
+      }
+      .sev-name {
+        font-size: 13px;
+        color: var(--bar-ink);
+        text-transform: capitalize;
+      }
+      .sev-track {
+        height: 16px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--bar-track);
+        box-shadow: inset 0 0 0 1px #ffffff14;
+      }
+      body.light .sev-track {
+        box-shadow: inset 0 0 0 1px #00000010;
+      }
+      .sev-fill {
+        height: 100%;
+        border-radius: 10px;
+      }
+      .sev-val {
+        font-size: 12px;
+        color: var(--bar-ink);
+        text-align: right;
+      }
+
+      .total-line {
+        text-align: center;
+        font-size: 12px;
+        color: var(--bar-ink);
+        margin-top: 4px;
+      }
+
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- Menu (Theme / Export CSV) -->
+      <div class="menu">
+        <button id="btnTheme" title="Toggle light/dark theme">Theme</button>
+        <button id="btnCsv" title="Export findings as CSV">Export CSV</button>
+      </div>
+
+      <!-- Brand -->
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <span class="a"></span><span class="b"></span><span class="c"></span
+          ><span class="d"></span>
+        </div>
+        <div class="wordmark">Qualisight</div>
+      </div>
+      <div class="tagline">Actionable Quality Insights for Test Automation</div>
+
+      <!-- Grid -->
+      <div class="grid">
+        <!-- Left: Score + Validation Summary -->
+        <section class="card">
+          <div class="kpi">
+            <div class="score">75/100</div>
+          </div>
+          <div class="meta" id="kpiLine">
+            <!-- e.g. Categories: 14 &nbsp;&nbsp; Validations: 199 &nbsp;&nbsp; ✅ (128) &nbsp;&nbsp; ❌ (71) -->
+          </div>
+
+          <div class="subhead">Validation Summary</div>
+          <ul class="list" id="summaryList">
+            <!-- rows injected -->
+          </ul>
+        </section>
+
+        <!-- Right: Category Scores & Severity Breakdown -->
+        <section class="card">
+          <div class="h2">Category Scores</div>
+          <div class="chart-wrap">
+            <div class="viz">
+              <!-- Centered Donut -->
+              <div class="donut" id="donut"></div>
+            </div>
+
+            <div class="h2">Severity Breakdown</div>
+            <div class="sev-rows" id="sevRows">
+              <!-- rows injected -->
+            </div>
+            <div class="total-line" id="sevTotal"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- DYNAMIC RENDER (keep base intact; swap RESULT in html.ts) -->
+    <script>
+      (function () {
+        'use strict';
+
+        // In html.ts, replace with: const RESULT = ${embedded};
+        const RESULT = window.__DEMO_RESULT__ || {
+          overallScore: 75,
+          categories: [
+            {
+              id: 'proj',
+              title: 'Project Structure',
+              score: 92,
+              findings: [
+                { status: 'pass' },
+                { status: 'fail', severity: 'high' },
+                { status: 'fail', severity: 'medium' },
+                { status: 'fail', severity: 'critical' },
+                { status: 'fail', severity: 'info' },
+              ],
+            },
+            {
+              id: 'deps',
+              title: 'Dependencies',
+              score: 77,
+              findings: Array.from({ length: 10 }, (_, i) => ({
+                status: i < 2 ? 'pass' : 'fail',
+                severity:
+                  i % 4 === 0 ? 'high' : i % 4 === 1 ? 'medium' : i % 4 === 2 ? 'critical' : 'info',
+              })),
+            },
+            {
+              id: 'cfg',
+              title: 'Config',
+              score: 48,
+              findings: Array.from({ length: 22 }, () => ({
+                status: 'fail',
+                severity: 'critical',
+              })),
+            },
+            {
+              id: 'tq',
+              title: 'Test Quality',
+              score: 97,
+              findings: Array.from({ length: 12 }, (_, i) => ({
+                status: i < 10 ? 'pass' : 'fail',
+                severity: i < 10 ? 'info' : 'high',
+              })),
+            },
+            {
+              id: 'loc',
+              title: 'Locator Strategy',
+              score: 90,
+              findings: Array.from({ length: 5 }, (_, i) => ({
+                status: i < 1 ? 'pass' : 'fail',
+                severity: 'low',
+              })),
+            },
+            {
+              id: 'flk',
+              title: 'Flakiness Risks',
+              score: 79,
+              findings: Array.from({ length: 13 }, () => ({ status: 'pass', severity: 'medium' })),
+            },
+            {
+              id: 'rep',
+              title: 'Reporting & Observability',
+              score: 21,
+              findings: Array.from({ length: 15 }, (_, i) => ({
+                status: i < 4 ? 'pass' : 'fail',
+                severity: i % 3 === 0 ? 'high' : 'critical',
+              })),
+            },
+            {
+              id: 'cicd',
+              title: 'CI/CD Integration',
+              score: 58,
+              findings: Array.from({ length: 14 }, (_, i) => ({
+                status: i < 4 ? 'pass' : 'fail',
+                severity: 'medium',
+              })),
+            },
+            {
+              id: 'net',
+              title: 'Network Control',
+              score: 42,
+              findings: Array.from({ length: 9 }, (_, i) => ({
+                status: i < 3 ? 'pass' : 'fail',
+                severity: 'high',
+              })),
+            },
+            {
+              id: 'core',
+              title: 'Core Functionalities',
+              score: 77,
+              findings: Array.from({ length: 7 }, (_, i) => ({
+                status: i < 5 ? 'pass' : 'fail',
+                severity: 'info',
+              })),
+            },
+            {
+              id: 'adv',
+              title: 'Advanced Capabilities',
+              score: 67,
+              findings: Array.from({ length: 4 }, (_, i) => ({
+                status: i < 2 ? 'pass' : 'fail',
+                severity: 'medium',
+              })),
+            },
+            {
+              id: 'data',
+              title: 'Data Management',
+              score: 73,
+              findings: Array.from({ length: 18 }, (_, i) => ({
+                status: i < 12 ? 'pass' : 'fail',
+                severity: 'low',
+              })),
+            },
+            {
+              id: 'best',
+              title: 'Best Practices Enforcement',
+              score: 96,
+              findings: Array.from({ length: 11 }, (_, i) => ({
+                status: i < 10 ? 'pass' : 'fail',
+                severity: 'info',
+              })),
+            },
+            {
+              id: 'notif',
+              title: 'Notification',
+              score: 0,
+              findings: Array.from({ length: 3 }, () => ({ status: 'fail', severity: 'critical' })),
+            },
+          ],
+        };
+
+        // theme + csv menu
+        document.getElementById('btnTheme')?.addEventListener('click', function () {
+          document.body.classList.toggle('light');
+        });
+        document.getElementById('btnCsv')?.addEventListener('click', function () {
+          const rows = [
+            [
+              'Category',
+              'Status',
+              'Severity',
+              'Title',
+              'Message',
+              'Suggestion',
+              'File',
+              'Artifacts',
+            ],
+          ];
+          (RESULT.categories || []).forEach((c) => {
+            (c.findings || []).forEach((f) => {
+              rows.push([
+                c.title || '',
+                f?.status || '',
+                (f?.severity || '').toString(),
+                f?.title || '',
+                f?.message || '',
+                f?.suggestion || '',
+                f?.file || '',
+                Array.isArray(f?.artifacts) ? f.artifacts.join(' | ') : f?.artifacts || '',
+              ]);
+            });
+          });
+          const csv = rows
+            .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            .join('\r\n');
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'qualisight-findings.csv';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(a.href);
+            a.remove();
+          }, 0);
+        });
+
+        // helpers
+        function $(sel, root) {
+          return (root || document).querySelector(sel);
+        }
+        function escapeHtml(s) {
+          return String(s).replace(
+            /[&<>"']/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[c],
+          );
+        }
+        function statusOf(f) {
+          return f && (f.status === 'pass' || f.status === 'fail') ? f.status : 'fail';
+        }
+
+        function countsPF(cats) {
+          let pass = 0,
+            fail = 0,
+            total = 0;
+          (cats || []).forEach((c) => {
+            (c.findings || []).forEach((f) => {
+              total++;
+              statusOf(f) === 'pass' ? pass++ : fail++;
+            });
+          });
+          return { pass, fail, total };
+        }
+        function failCount(cat) {
+          let n = 0;
+          (cat.findings || []).forEach((f) => {
+            if (statusOf(f) === 'fail') n++;
+          });
+          return n;
+        }
+
+        // KPI header line
+        (function renderKPI() {
+          const score = $('.score');
+          if (score) score.textContent = String(RESULT.overallScore || 0) + '/100';
+
+          const tiny = $('#kpiLine');
+          if (tiny) {
+            const cats = RESULT.categories || [];
+            const pf = countsPF(cats);
+            tiny.innerHTML = `Categories: <b>${cats.length}</b>&nbsp;&nbsp; Validations: <b>${pf.total}</b>&nbsp;&nbsp; <span style="color:#16a34a">✅ (${pf.pass})</span>&nbsp;&nbsp; <span style="color:#ef4444">❌ (${pf.fail})</span>`;
+          }
+        })();
+
+        // Validation Summary list
+        (function renderSummary() {
+          const list = $('#summaryList');
+          if (!list) return;
+          list.innerHTML = '';
+          (RESULT.categories || []).forEach((cat) => {
+            const fails = failCount(cat);
+            const li = document.createElement('li');
+            li.className = 'row';
+            li.innerHTML =
+              `<span class="name">${escapeHtml(cat.title || '')} <small>(${cat.score || 0})</small></span>` +
+              `<span class="right"><span class="tick">✓</span><span class="${fails > 0 ? 'err badge' : 'badge'}">${fails}</span></span>`;
+            list.appendChild(li);
+          });
+        })();
+
+        // Donut (centered)
+        (function renderDonut() {
+          const container = $('#donut');
+          if (!container) return;
+          const cats = RESULT.categories || [];
+          const parts = cats.map((c) => Math.max(1, c.score || 0));
+          const total = parts.reduce((s, n) => s + n, 0) || 1;
+          const colors = [
+            '#60a5fa',
+            '#34d399',
+            '#f59e0b',
+            '#a78bfa',
+            '#22d3ee',
+            '#7c83ff',
+            '#84cc16',
+            '#f472b6',
+          ];
+          const dashTotal = 360;
+          let dashSoFar = 0;
+          const segs = parts
+            .map((v, i) => {
+              const seg = Math.round((v / total) * dashTotal);
+              const color = colors[i % colors.length];
+              const html = `<circle cx="100" cy="100" r="78" fill="none" stroke="${color}" stroke-width="40" stroke-dasharray="${seg} ${dashTotal}" stroke-dashoffset="-${dashSoFar}" transform="rotate(-90 100 100)"/>`;
+              dashSoFar += seg;
+              return html;
+            })
+            .join('');
+          const svg =
+            `<svg viewBox="0 0 200 200" width="260" height="260" role="img" aria-label="Score donut">` +
+            `<circle cx="100" cy="100" r="78" fill="none" stroke="#1a2a46" stroke-width="40" />` +
+            `${segs}<circle cx="100" cy="100" r="55" fill="${getComputedStyle(document.body).getPropertyValue('--card').trim() || '#0f1724'}" />` +
+            `</svg>`;
+          const center = `<div class="center">${RESULT.overallScore || 0}/100</div>`;
+          container.innerHTML = svg + center;
+
+          // simple tooltip for category slice
+          container.onmousemove = function (ev) {
+            const rect = container.getBoundingClientRect();
+            const x = ev.clientX - rect.left - 130; // 130 ~ svg center x offset (padding)
+            const y = ev.clientY - rect.top - 130; // 130 ~ svg center y offset
+            const dist = Math.sqrt(x * x + y * y);
+            container.title = dist > 55 && dist < 100 ? 'Category Scores' : '';
+          };
+        })();
+
+        // Severity Breakdown (horizontal rows)
+        (function renderSeverityRows() {
+          const sevColors = {
+            critical: '#ef4444',
+            high: '#f59e0b',
+            medium: '#38bdf8',
+            info: '#7c83ff',
+          };
+          const order = ['critical', 'high', 'medium', 'info'];
+          const counts = { critical: 0, high: 0, medium: 0, info: 0, low: 0 };
+
+          // normalize 'low' to 'info' if it appears
+          (RESULT.categories || []).forEach((c) => {
+            (c.findings || []).forEach((f) => {
+              let s = f && f.severity ? String(f.severity).toLowerCase() : 'info';
+              if (s === 'low') s = 'info';
+              if (!counts.hasOwnProperty(s)) s = 'info';
+              counts[s]++;
+            });
+          });
+
+          const max = Math.max(1, counts.critical, counts.high, counts.medium, counts.info);
+          const total = counts.critical + counts.high + counts.medium + counts.info;
+
+          const host = document.getElementById('sevRows');
+          if (!host) return;
+          host.innerHTML = '';
+
+          order.forEach((key) => {
+            const row = document.createElement('div');
+            row.className = 'sev-row';
+            const pct = Math.round((counts[key] / max) * 100);
+
+            row.innerHTML =
+              `<div class="sev-name">${key}</div>` +
+              `<div class="sev-track"><div class="sev-fill" style="width:${pct}%; background:${sevColors[key]}"></div></div>` +
+              `<div class="sev-val">${counts[key]}</div>`;
+
+            host.appendChild(row);
+          });
+
+          const totalLine = document.getElementById('sevTotal');
+          if (totalLine) totalLine.textContent = 'Total validations: ' + total;
+        })();
+      })();
+    </script>
+  </body>
+</html>

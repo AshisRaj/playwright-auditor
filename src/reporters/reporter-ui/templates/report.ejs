@@ -1,0 +1,39 @@
+<main>
+  <%- include('partials/header', { title: 'Playwright Audit' }) %>
+
+  <section class="grid">
+    <section class="card" style="grid-column:1/-1">
+      <div class="row">
+        <div class="score" id="overall"></div>
+        <div class="row" id="badges"></div>
+      </div>
+      <div class="sep"></div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <b>Validation Summary</b>
+            <br style="flex-basis:100%; height:0"/>
+            <div id="summaryChips" class="row"></div>
+          </div>
+          <div id="sumList" style="margin-top:8px; font-size:14px"></div>
+        </div>
+        <div class="card">
+          <div><b>Category Scores</b></div>
+          <canvas id="donut" width="320" height="220"></canvas>
+          <div id="donutTip" class="tooltip hidden" role="tooltip" aria-hidden="true"></div>
+        </div>
+        <div class="card">
+          <div><b>Severity Breakdown</b></div>
+          <canvas id="bars" width="320" height="220"></canvas>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <div id="catTabs" class="tabs" role="tablist" aria-label="Audit Categories"></div>
+  <section id="panels"></section>
+
+  <div id="err" style="display:none" class="err-banner"></div>
+  <div class="footer">Zero-dependency single-file report • Save & share safely</div>
+</main>

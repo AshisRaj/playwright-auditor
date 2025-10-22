@@ -1,0 +1,22 @@
+<header class="row">
+  <div>
+    <h1><%= title %></h1>
+    <div class="sub">Generated <span id="ts"></span> • <span id="proj"></span></div>
+  </div>
+  <div class="right row">
+    <input id="search" type="search" placeholder="Search findings (title/message/file/artifacts)" />
+    <select id="sevFilter">
+      <option value="">All severities</option>
+      <option>critical</option>
+      <option>high</option>
+      <option>medium</option>
+      <option>low</option>
+      <option>info</option>
+    </select>
+    <label class="toggle"><input type="checkbox" id="onlyFails" /> Show only failures</label>
+    <button id="expandAll">Expand all</button>
+    <button id="collapseAll">Collapse all</button>
+    <button id="exportCsv" title="Download findings as CSV">Export CSV</button>
+    <button id="toggleTheme" title="Toggle light/dark">Light/Dark</button>
+  </div>
+</header>
