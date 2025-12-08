@@ -1,14 +1,18 @@
 # Playwright Project Auditor
 
 ## Install
+
 ```bash
-pnpm i
-pnpm build
+npm i
+npm run build
 ```
 
 ## Usage
+
 ```bash
 # audit current folder
+npx pwaudit
+or
 npx pwaudit . -o audit-report
 
 # or after build
@@ -16,6 +20,7 @@ node dist/cli.js . -o audit-report
 ```
 
 ## What it checks
+
 - Project structure (tests/, pages/, fixtures/, data/)
 - Dependencies (Playwright version, advanced reporting libs)
 - Config hygiene (trace, video, retries, reporters, timeouts)
@@ -27,5 +32,6 @@ node dist/cli.js . -o audit-report
 - Network control hints (route/request usage)
 
 ## Output
+
 - `audit-report/report.json` — machine-readable
 - `audit-report/index.html` — dashboard
