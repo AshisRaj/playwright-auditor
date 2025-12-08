@@ -1,3 +1,9 @@
 {
-  "recommendations": ["ms-playwright.playwright", "editorconfig.editorconfig", "esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
+  "recommendations": [
+    "ms-playwright.playwright",
+    "editorconfig.editorconfig",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "peakchen90.open-html-in-browser"
+  ]
 }
