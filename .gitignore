@@ -4,3 +4,7 @@ node_modules/
 /playwright-report/
 /playwright/.cache/
 /audit-report/
+dist/
+dist/bin/
+bin/
+dist/bin/cli.js

@@ -30,16 +30,20 @@ export async function analyzeConfig(targetDir) {
         screenshotGood: /\bscreenshot\s*:\s*["']?(?:only-on-failure|on)["']?/i,
         screenshotAny: /\bscreenshot\s*:/i,
         // retries: number >=1 OR ternary (e.g., process.env.CI ? 2 : 1)
-        retriesGood: /\bretries\s*:\s*(?!0\b)(\d+|process\.env\.[A-Za-z_]\w*\s*\?\s*\d+\s*:\s*\d+)/i,
+        // Accept both dot and bracket access on process.env (process.env.CI or process.env['CI'])
+        retriesGood: /\bretries\s*:\s*(?!0\b)(\d+|process\.env(?:\.[A-Za-z_]\w*|\[['"]\w+['"]\])\s*\?\s*\d+\s*:\s*\d+)/i,
         retriesAny: /\bretries\s*:/i,
         // workers: number >=1 OR ternary (e.g., process.env.CI ? 1 : 0|1)
-        workersGood: /\bworkers\s*:\s*(?!0\b)(\d+|process\.env\.[A-Za-z_]\w*\s*\?\s*\d+\s*:\s*\d+)/i,
+        // Accept both dot and bracket access on process.env
+        workersGood: /\bworkers\s*:\s*(?!0\b)(\d+|process\.env(?:\.[A-Za-z_]\w*|\[['"]\w+['"]\])\s*\?\s*\d+\s*:\s*\d+)/i,
         workersAny: /\bworkers\s*:/i,
         headlessTrue: /\bheadless\s*:\s*true\b/i,
         projects: /\bprojects\s*:\s*\[/i,
         // reporters (html or junit)
-        reporterHtml: /\breporter\s*:\s*(\[[^\]]*(["']html["'])[^\]]*\]|["']html["'])/i,
-        reporterJunit: /\breporter\s*:\s*(\[[^\]]*(junit|junit-reporter)[^\]]*\]|["']junit["'])/i,
+        // reporters (html or junit). Accept both `reporter` and `reporters` keys,
+        // and array/object forms like: reporter: [ ["html", {...}] ] or reporters: [...]
+        reporterHtml: /\breporters?\s*:\s*(?:\[[\s\S]*?\b(?:"html"|'html'|\[\s*"html"|\[\s*'html')|\b(?:"html"|'html'))/i,
+        reporterJunit: /\breporters?\s*:\s*(?:\[[\s\S]*?\b(?:junit|junit-reporter)|\b(?:junit|junit-reporter))/i,
         baseURLAny: /\bbaseURL\s*:/i,
         // video: warn if explicitly "off"
         videoAny: /\bvideo\s*:\s*["']?(on|off|on-first-retry|retain-on-failure)["']?/i,
