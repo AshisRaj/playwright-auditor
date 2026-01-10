@@ -52,9 +52,12 @@ export async function analyzeFlakiness(targetDir: string): Promise<CategoryResul
   };
   const pickString = (re: RegExp) => (cfgText.match(re) || [])[1];
 
+  // Accept either direct numeric retries or a ternary based on any process.env variable
   const retriesConfigured =
     /(?:^|[,{]\s*)["']?\s*retries\s*["']?\s*:\s*(\d+)/i.test(cfgText) ||
-    /retries\s*:\s*process\.env\.CI\s*\?\s*\d+\s*:\s*\d+/i.test(cfgText);
+    /retries\s*:\s*process\.env(?:\.[A-Za-z_]\w*|\[['"]\w+['"]\])\s*\?\s*\d+\s*:\s*\d+/i.test(
+      cfgText,
+    );
   const retriesNum = matchNum(/retries\s*:\s*(\d{1,3})/i);
 
   const testTimeout = matchNum(/[^A-Za-z]timeout\s*:\s*(\d{2,7})/i);

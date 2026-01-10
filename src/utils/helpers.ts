@@ -62,7 +62,11 @@ export async function readFile(
 export function ok(re: RegExp, text: string | undefined | null): boolean {
   if (!text) return false;
   try {
-    return re.test(text);
+    // Avoid stateful behaviour when callers pass a RegExp with the global flag.
+    // Create a fresh RegExp copy without the global flag for boolean tests.
+    const flags = (re.flags || '').replace('g', '');
+    const safeRe = new RegExp(re.source, flags);
+    return safeRe.test(text);
   } catch {
     return false;
   }
@@ -321,9 +325,12 @@ export async function collectCiConfigs(targetDir: string): Promise<CiScan> {
 }
 
 export function firstFileMatching(scan: CiScan, re: RegExp): string | undefined {
+  // Avoid using a stateful RegExp (with 'g') directly here — create a fresh copy.
+  const flags = (re.flags || '').replace('g', '');
+  const safeRe = new RegExp(re.source, flags);
   for (const f of scan.files) {
     const t = scan.textByFile.get(f) || '';
-    if (re.test(t)) return f;
+    if (safeRe.test(t)) return f;
   }
   return undefined;
 }

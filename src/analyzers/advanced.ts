@@ -38,17 +38,33 @@ function reporterLocalPathInConfig(cfgText: string): boolean {
   if (!cfgText) return false;
 
   // reporter: [ './x', '../y', { reporter: './z' }, ... ]
-  const anyLocalInArray = /\breporter\s*:\s*\[(?:[^\]]*['"]\.{1,2}\/[^'"]+['"][^\]]*)\]/s.test(
+  // Accept `reporter` or `reporters` and nested object entries. Use a tolerant pattern.
+  const anyLocalInArray = /\breporters?\s*:\s*\[(?:[^\]]*['"]\.{1,2}\/[^'\"]+['"][^\]]*)\]/s.test(
     cfgText,
   );
 
   // reporter: [ { reporter: './x', ... }, ... ]
   const localInObjectInsideArray =
-    /\breporter\s*:\s*\[[^\]]*\{\s*[^}]*\breporter\s*:\s*['"]\.{1,2}\/[^'"]+['"][^}]*\}[^]]*\]/s.test(
+    /\breporters?\s*:\s*\[[^\]]*\{\s*[^}]*\breporter\s*:\s*['"]\.{1,2}\/[^'\"]+['"][^}]*\}[^]]*\]/s.test(
       cfgText,
     );
 
-  return anyLocalInArray || localInObjectInsideArray;
+  // Detect imports/requires referencing a local reporter file, e.g.
+  // import MyReporter from './reporters/custom-reporter'
+  // const MyReporter = require('./reporters/custom-reporter')
+  const importLocalReporter =
+    /import\s+[\s\S]+?\s+from\s+['"](\.{1,2}\/[^'"\n]*reporter[^'"\n]*)['"]/i.test(cfgText);
+  const requireLocalReporter = /require\(\s*['"](\.{1,2}\/[^'"\n]*reporter[^'"\n]*)['"]\s*\)/i.test(
+    cfgText,
+  );
+
+  const hasReporterKey = /\breporters?\s*:/i.test(cfgText);
+
+  // If config imports a local reporter module and has a `reporter`/`reporters` key,
+  // treat that as evidence of a local reporter configured (covers `import X` + `reporter: [X]`).
+  const importBasedLocalReporter = hasReporterKey && (importLocalReporter || requireLocalReporter);
+
+  return anyLocalInArray || localInObjectInsideArray || importBasedLocalReporter;
 }
 
 /**
@@ -148,7 +164,19 @@ export async function analyzeAdvanced(targetDir: string): Promise<CategoryResult
   //  (2) a project file that implements Reporter (typed/imported) AND has hooks
   const reporterInConfigLocal = reporterLocalPathInConfig(cfgText);
   const reporterImplFile = await findFirstFile(targetDir, (txt) => hasReporterImplementation(txt));
-  const reporterPass = reporterInConfigLocal && !!reporterImplFile;
+
+  // Relaxed matching: pass if a reporter implementation file exists AND there is
+  // any evidence in config of reporters (explicit local path OR a reporters key OR an import/require).
+  const hasReporterKey = /\breporters?\s*:/i.test(cfgText);
+  const importLocalReporter =
+    /import\s+[\s\S]+?\s+from\s+['"](\.{1,2}\/[^'"\n]*reporter[^'"\n]*)['"]/i.test(cfgText);
+  const requireLocalReporter = /require\(\s*['"](\.{1,2}\/[^'"\n]*reporter[^'"\n]*)['"]\s*\)/i.test(
+    cfgText,
+  );
+
+  const reporterConfigEvidence =
+    reporterInConfigLocal || hasReporterKey || importLocalReporter || requireLocalReporter;
+  const reporterPass = !!reporterImplFile && reporterConfigEvidence;
 
   cat.findings.push({
     id: 'adv-custom-reporter',
