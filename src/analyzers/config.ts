@@ -18,9 +18,12 @@ export async function analyzeConfig(targetDir: string): Promise<CategoryResult> 
     id: 'cfg-present',
     title: 'Playwright config present',
     message: present ? `Found ${path.basename(cfgPath!)}` : 'No playwright.config.* found',
-    severity: present ? 'low' : 'critical',
+    severity: 'critical',
     status: present ? 'pass' : 'fail',
-    file: cfgPath || '',
+    suggestion: present
+      ? undefined
+      : 'Add a Playwright config file (e.g., playwright.config.ts) to customize test settings',
+    file: present ? cfgPath! : '',
   });
 
   const text = cfgPath ? await readFile(cfgPath) : '';

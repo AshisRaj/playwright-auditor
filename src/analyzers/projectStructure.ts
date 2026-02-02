@@ -16,6 +16,7 @@ type Candidate = {
   label: string;
   path: string;
   sev: Sev;
+  suggestion?: string;
   alt?: string[];
 };
 
@@ -32,24 +33,38 @@ async function firstExisting(
 export async function analyzeProjectStructure(targetDir: string): Promise<CategoryResult> {
   // --- Core presence checks ---
   const candidates: Candidate[] = [
-    { label: 'Root package.json present', path: 'package.json', sev: 'high' },
+    {
+      label: 'Root package.json present',
+      path: 'package.json',
+      sev: 'critical',
+      suggestion: 'A package.json is required to manage dependencies and scripts.',
+    },
     {
       label: 'Playwright config present',
       path: 'playwright.config.ts',
       sev: 'critical',
+      suggestion: 'Setting up a Playwright config is essential for test execution.',
       alt: ['playwright.config.js', 'playwright.config.mjs', 'playwright.config.cjs'],
     },
     {
       label: 'Tests directory exists',
       path: 'tests',
       sev: 'medium',
-      alt: ['e2e', 'test', '__tests__', 'src/tests'],
+      suggestion: 'Organizing tests in a dedicated directory improves maintainability.',
+      alt: ['e2e', 'e2e/tests', 'test', '__tests__', 'src/tests'],
     },
-    { label: 'Src directory exists', path: 'src', sev: 'medium', alt: ['e2e/src'] },
+    {
+      label: 'Src directory exists',
+      path: 'src',
+      sev: 'medium',
+      suggestion: 'Source directory contains the main application code.',
+      alt: ['e2e/src', 'tests/src', 'test/src'],
+    },
     {
       label: 'Config directory exists',
       path: 'src/configs',
       sev: 'medium',
+      suggestion: 'Having a dedicated config directory helps manage environment-specific settings.',
       alt: ['src/config', 'e2e/src/configs', 'e2e/src/config'],
     },
     { label: 'Data directory exists', path: 'src/data', sev: 'medium', alt: ['e2e/src/data'] },
@@ -57,43 +72,110 @@ export async function analyzeProjectStructure(targetDir: string): Promise<Catego
       label: 'Envs directory exists',
       path: 'src/environments',
       sev: 'medium',
-      alt: ['e2e/src/environments', 'src/env'],
+      suggestion:
+        'Organizing environment-specific files in a dedicated directory improves clarity.',
+      alt: [
+        'e2e/src/environments',
+        'e2e/src/.environments',
+        'e2e/src/environment',
+        'e2e/src/.environment',
+        'e2e/src/.env',
+        'e2e/src/env',
+        'e2e/src/.envs',
+        'e2e/src/envs',
+
+        'src/.environments',
+        'src/environment',
+        'src/.environment',
+        'src/.env',
+        'src/.envs',
+        'src/env',
+        'src/envs',
+      ],
     },
     {
       label: 'Fixtures directory exists',
       path: 'src/fixtures',
       sev: 'medium',
-      alt: ['e2e/fixtures'],
+      suggestion: 'Fixtures help manage test data and states effectively.',
+      alt: ['e2e/src/fixtures', 'e2e/src/fixture', 'src/fixture'],
     },
-    { label: 'Helpers directory exists', path: 'src/helpers', sev: 'medium', alt: ['e2e/helpers'] },
-    { label: 'Pages directory exists', path: 'src/pages', sev: 'medium', alt: ['e2e/pages'] },
+    {
+      label: 'Helpers directory exists',
+      path: 'src/helpers',
+      sev: 'medium',
+      suggestion: 'Helpers provide reusable functions and utilities.',
+      alt: ['e2e/src/helpers', 'e2e/src/helper', 'src/helper'],
+    },
+    {
+      label: 'Pages directory exists',
+      path: 'src/pages',
+      sev: 'medium',
+      suggestion: 'Pages represent the UI components or screens.',
+      alt: ['e2e/src/pages', 'e2e/src/page', 'src/page'],
+    },
     {
       label: 'Services directory exists',
       path: 'src/services',
       sev: 'medium',
-      alt: ['e2e/services'],
+      suggestion: 'Services provide business logic and data handling.',
+      alt: ['e2e/src/services', 'e2e/src/service', 'src/service'],
     },
-    { label: 'Utils directory exists', path: 'src/utils', sev: 'medium', alt: ['e2e/utils'] },
+    {
+      label: 'Utils directory exists',
+      path: 'src/utils',
+      sev: 'high',
+      suggestion: 'Utils provide utility functions and helpers.',
+      alt: ['e2e/src/utils', 'e2e/src/util', 'src/util'],
+    },
     {
       label: '.husky directory exists',
       path: '.husky',
-      sev: 'medium',
-      alt: ['e2e/.husky', 'src/.husky'],
+      sev: 'high',
+      suggestion: 'Husky helps manage Git hooks for better workflow automation.',
+      alt: ['e2e/.husky', 'src/.husky', 'tests/.husky'],
     },
-    { label: 'TypeScript config present', path: 'tsconfig.json', sev: 'low' },
-    { label: 'Git ignore present', path: '.gitignore', sev: 'low' },
-    { label: 'Editor config present', path: '.editorconfig', sev: 'info' },
+    {
+      label: 'TypeScript config present',
+      path: 'tsconfig.json',
+      sev: 'high',
+      suggestion: 'TypeScript configuration helps manage project compilation.',
+      alt: ['tsconfig.base.json', 'tsconfig.app.json', 'tsconfig.build.json', 'tsconfig.test.json'],
+    },
+    {
+      label: 'Git ignore present',
+      path: '.gitignore',
+      sev: 'high',
+      suggestion: 'Git ignore helps exclude files from version control.',
+      alt: ['gitignore'],
+    },
+    {
+      label: 'Editor config present',
+      path: '.editorconfig',
+      sev: 'high',
+      suggestion:
+        'EditorConfig helps maintain consistent coding styles between different editors and IDEs.',
+      alt: ['editorconfig'],
+    },
     {
       label: 'ESLint config present',
       path: 'eslint.config.js',
-      sev: 'info',
+      sev: 'high',
+      suggestion: 'ESLint configuration helps maintain code quality and consistency.',
       alt: ['eslint.config.mjs', '.eslintrc.js', '.eslintrc.cjs', '.eslintrc.json', '.eslintrc'],
     },
-    { label: 'README present', path: 'README.md', sev: 'medium', alt: ['ReadMe.md', 'USAGE.md'] },
+    {
+      label: 'README present',
+      path: 'README.md',
+      sev: 'high',
+      suggestion: 'README provides essential project information.',
+      alt: ['ReadMe.md', 'Readme.md', 'USAGE.md'],
+    },
     {
       label: 'Lockfile present (npm/pnpm/yarn)',
       path: 'package-lock.json',
-      sev: 'info',
+      sev: 'high',
+      suggestion: 'Lockfiles ensure consistent dependency versions across environments.',
       alt: ['pnpm-lock.yaml', 'yarn.lock'],
     },
   ];
@@ -106,7 +188,8 @@ export async function analyzeProjectStructure(targetDir: string): Promise<Catego
       title: c.label,
       status: res.ok as any, // boolean for helper; cast to satisfy TS
       severity: c.sev,
-      message: res.ok ? 'Found' : 'Missing',
+      message: `Status: ${res.ok ? 'Found' : 'Missing'}`,
+      suggestion: c.suggestion,
       file: res.ok ? res.used : c.path,
       artifacts:
         res.ok && res.used ? [path.join(targetDir, res.used)] : [path.join(targetDir, c.path)],

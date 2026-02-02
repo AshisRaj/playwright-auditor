@@ -82,6 +82,9 @@ export async function analyzeDependencies(targetDir) {
             status: ok ? 'pass' : 'fail',
             sev,
             message: ok ? `Found ${name}@${getVersion(allDeps, name)}` : `${name} not found`,
+            suggestion: ok
+                ? undefined
+                : `Install "${name}" (e.g. "npm install --save-dev ${name}" or "npm install ${name}").`,
             file: 'package.json',
         });
     }
@@ -93,9 +96,7 @@ export async function analyzeDependencies(targetDir) {
     const mistakenlyHasOldMeta = hasDep(allDeps, 'typescript-eslint'); // incorrect meta-package name in many repos
     addFinding({
         title: 'TypeScript ESLint integration',
-        status: (usesTS ? hasTsEslintPlugin && hasTsEslintParser && !mistakenlyHasOldMeta : true)
-            ? 'pass'
-            : 'fail',
+        status: hasTsEslintPlugin && hasTsEslintParser && !mistakenlyHasOldMeta ? 'pass' : 'fail',
         sev: usesTS ? 'high' : 'info',
         message: usesTS
             ? hasTsEslintPlugin && hasTsEslintParser
@@ -103,73 +104,88 @@ export async function analyzeDependencies(targetDir) {
                     ? 'Has @typescript-eslint/* but also legacy "typescript-eslint" (remove).'
                     : 'ESLint wired for TypeScript.'
                 : 'Missing @typescript-eslint/eslint-plugin and/or @typescript-eslint/parser.'
-            : 'TypeScript not detected; skipping.',
+            : 'TypeScript not detected.',
         suggestion: usesTS
             ? 'Install @typescript-eslint/eslint-plugin & @typescript-eslint/parser and remove legacy "typescript-eslint".'
-            : undefined,
+            : 'No action required.',
         artifacts: [pkgPath, ...tsconfigCandidates],
     });
     // If TypeScript used, ensure a typecheck script exists
     addFinding({
         title: 'TypeScript typecheck script',
-        status: (usesTS ? !!scripts['typecheck'] : true) ? 'pass' : 'fail',
+        status: scripts['typecheck'] ? 'pass' : 'fail',
         sev: usesTS ? 'low' : 'info',
         message: usesTS
             ? scripts['typecheck']
                 ? `Script "typecheck": ${scripts['typecheck']}`
                 : 'Script "typecheck" missing'
-            : 'TypeScript not detected; skipping.',
-        suggestion: usesTS ? 'Add "typecheck": "tsc -p tsconfig.json --noEmit".' : undefined,
+            : 'TypeScript not detected.',
+        suggestion: usesTS ? undefined : 'Add "typecheck": "tsc -p tsconfig.json --noEmit".',
         file: 'package.json',
     });
-    // ---- 3) Playwright wiring & Allure coupling
+    // ---- Playwright wiring & Allure coupling
     const testScript = scripts['test'] || '';
     const hasPlaywrightTestScript = /playwright\s+test/.test(testScript) || anyScriptIncludes(scripts, /\bplaywright\s+test\b/);
     addFinding({
         title: 'Playwright test script',
-        status: hasPlaywrightTestScript ? 'pass' : 'fail',
-        sev: 'medium',
-        message: hasPlaywrightTestScript
-            ? `Script "test": ${testScript}`
-            : 'No "playwright test" in scripts.',
-        suggestion: 'Add "test": "playwright test" (and consider CI variants like "--reporter=line").',
+        status: hasDep(allDeps, '@playwright/test') && hasPlaywrightTestScript ? 'pass' : 'fail',
+        sev: hasDep(allDeps, '@playwright/test') ? 'medium' : 'info',
+        message: hasDep(allDeps, '@playwright/test')
+            ? hasPlaywrightTestScript
+                ? 'Script "playwright test" found.'
+                : 'Playwright installed but no test script found.'
+            : 'Playwright not used.',
+        suggestion: hasDep(allDeps, '@playwright/test')
+            ? undefined
+            : 'Add "test": "playwright test" script to run Playwright tests.',
         file: 'package.json',
     });
+    // Allure pairing
     const hasAllurePlaywright = hasDep(allDeps, 'allure-playwright');
     const hasAllureCmd = hasDep(allDeps, 'allure-commandline');
     addFinding({
         title: 'Allure dependencies consistent',
-        status: (hasAllurePlaywright ? hasAllureCmd : true) ? 'pass' : 'fail',
+        status: hasAllurePlaywright && hasAllureCmd ? 'pass' : 'fail',
         sev: hasAllurePlaywright ? 'high' : 'info',
         message: hasAllurePlaywright
             ? hasAllureCmd
                 ? 'allure-playwright & allure-commandline present.'
                 : 'allure-playwright present but allure-commandline missing.'
-            : 'Allure not used; skipping.',
+            : 'Allure not used.',
         suggestion: hasAllurePlaywright
-            ? 'Install "allure-commandline" for local/CI report generation.'
-            : undefined,
+            ? undefined
+            : 'Install both "allure-playwright" and "allure-commandline" for Allure reporting.',
         file: 'package.json',
     });
-    // ---- 4) Prettier + ESLint harmony
+    // ---- Prettier + ESLint harmony
     const hasEslint = hasDep(allDeps, 'eslint');
     const hasPrettier = hasDep(allDeps, 'prettier');
-    const hasEslintConfigPrettier = hasDep(allDeps, 'eslint-config-prettier');
+    const prettierConfigFiles = await findFiles(targetDir, [
+        '.prettierrc',
+        '.prettierrc.json',
+        '.prettierrc.yaml',
+        '.prettierrc.yml',
+        '.prettierrc.js',
+        '.prettierrc.cjs',
+        'prettier.config.js',
+        'prettier.config.cjs',
+    ]);
+    const hasPrettierConfig = prettierConfigFiles.length > 0;
     addFinding({
-        title: 'ESLint + Prettier integration',
-        status: !hasEslint || (hasPrettier && hasEslintConfigPrettier) ? 'pass' : 'fail',
-        sev: hasEslint ? 'high' : 'info',
-        message: hasEslint
-            ? hasPrettier && hasEslintConfigPrettier
-                ? 'ESLint and Prettier correctly integrated.'
-                : 'Missing Prettier and/or eslint-config-prettier.'
-            : 'ESLint not detected; skipping.',
-        suggestion: hasEslint
-            ? 'Install "prettier" and "eslint-config-prettier"; extend it last in ESLint config.'
-            : undefined,
-        file: 'package.json',
+        title: 'Prettier + ESLint integration',
+        status: hasEslint && hasPrettier && hasPrettierConfig ? 'pass' : 'fail',
+        sev: hasEslint && hasPrettier ? 'high' : 'info',
+        message: hasEslint && hasPrettier
+            ? hasPrettierConfig
+                ? 'ESLint & Prettier integrated with configs.'
+                : 'Missing Prettier config file.'
+            : 'ESLint or Prettier not used.',
+        suggestion: hasEslint && hasPrettier
+            ? undefined
+            : 'Install and configure ESLint and Prettier, or remove unused tooling.',
+        artifacts: [pkgPath, ...prettierConfigFiles],
     });
-    // ---- 5) Husky + lint-staged wiring
+    // ---- Husky + lint-staged wiring
     const huskyInstalled = hasDep(allDeps, 'husky');
     const lintStagedInstalled = hasDep(allDeps, 'lint-staged');
     const hasPrepareScript = !!scripts['prepare'];
@@ -177,19 +193,19 @@ export async function analyzeDependencies(targetDir) {
     const huskyDirExists = await exists(huskyDir);
     addFinding({
         title: 'Husky installed & prepared',
-        status: (huskyInstalled ? hasPrepareScript && huskyDirExists : true) ? 'pass' : 'fail',
+        status: huskyInstalled && hasPrepareScript && huskyDirExists ? 'pass' : 'fail',
         sev: huskyInstalled ? 'medium' : 'info',
         message: huskyInstalled
             ? hasPrepareScript && huskyDirExists
                 ? 'Husky installed, "prepare" script set, and .husky/ present.'
                 : 'Husky installed but missing "prepare" script and/or .husky directory.'
-            : 'Husky not used; skipping.',
+            : 'Husky not used.',
         suggestion: huskyInstalled
-            ? 'Add "prepare": "husky install" and run it once to create .husky/.'
-            : undefined,
+            ? undefined
+            : 'Install "husky", add "prepare" script, and run "husky install".',
         artifacts: [pkgPath, huskyDir],
     });
-    // lint-staged: present either in package.json or a config file
+    // ---- lint-staged: present either in package.json or a config file
     const lintStagedConfigFiles = await findFiles(targetDir, [
         '.lintstagedrc',
         '.lintstagedrc.json',
@@ -203,19 +219,19 @@ export async function analyzeDependencies(targetDir) {
     const hasLintStagedConfig = !!pkg['lint-staged'] || lintStagedConfigFiles.length > 0;
     addFinding({
         title: 'lint-staged configured',
-        status: (lintStagedInstalled ? hasLintStagedConfig : true) ? 'pass' : 'fail',
+        status: lintStagedInstalled && hasLintStagedConfig ? 'pass' : 'fail',
         sev: lintStagedInstalled ? 'medium' : 'info',
         message: lintStagedInstalled
             ? hasLintStagedConfig
                 ? 'lint-staged configuration found.'
                 : 'lint-staged installed but no configuration found.'
-            : 'lint-staged not used; skipping.',
+            : 'lint-staged not used.',
         suggestion: lintStagedInstalled
-            ? 'Add a lint-staged config (e.g., format TS/JS/JSON/MD on pre-commit).'
-            : undefined,
+            ? undefined
+            : 'Add a lint-staged config (e.g., format TS/JS/JSON/MD on pre-commit).',
         artifacts: lintStagedConfigFiles,
     });
-    // ---- 6) Version hygiene (avoid floating versions like "*" or "latest")
+    // ---- Version hygiene (avoid floating versions like "*" or "latest")
     const floaters = Object.entries(allDeps)
         .filter(([, v]) => looksFloating(v))
         .map(([n, v]) => `${n}@${v}`);
@@ -227,11 +243,11 @@ export async function analyzeDependencies(targetDir) {
             ? 'All versions pinned with a range (^ or ~) or exact.'
             : `Floating versions detected: ${floaters.join(', ')}`,
         suggestion: floaters.length > 0
-            ? 'Replace "*" or "latest" with a caret (^) range or a pinned version.'
-            : undefined,
+            ? undefined
+            : 'Replace "*" or "latest" with a caret (^) range or a pinned version.',
         file: 'package.json',
     });
-    // ---- 7) Lockfile sanity (only one package manager lock)
+    // ---- Lockfile sanity (only one package manager lock)
     const lockfiles = await Promise.all([
         exists(path.join(targetDir, 'package-lock.json')).then((p) => (p ? 'package-lock.json' : '')),
         exists(path.join(targetDir, 'yarn.lock')).then((p) => (p ? 'yarn.lock' : '')),
@@ -255,19 +271,19 @@ export async function analyzeDependencies(targetDir) {
                 : undefined,
         artifacts: presentLocks.map((lf) => path.join(targetDir, lf)),
     });
-    // ---- 8) Date/time & util library guidance (moment → dayjs/date-fns)
+    // ---- Date/time & util library guidance (moment → dayjs/date-fns)
     const hasMoment = hasDep(allDeps, 'moment');
     addFinding({
         title: 'Modern date/time library',
-        status: !hasMoment ? 'pass' : 'fail',
+        status: hasMoment ? 'pass' : 'fail',
         sev: hasMoment ? 'info' : 'low',
-        message: hasMoment
-            ? 'Using "moment". Consider "dayjs" or "date-fns" for smaller footprint.'
-            : 'No legacy date library detected.',
-        suggestion: hasMoment ? 'Migrate to "dayjs" or "date-fns" where possible.' : undefined,
+        message: hasMoment ? 'Using "moment".' : 'No legacy date library detected.',
+        suggestion: hasMoment
+            ? ' Consider "dayjs" or "date-fns" where possible for smaller footprint.'
+            : 'No action required.',
         file: 'package.json',
     });
-    // ---- 9) Duplicative data generators (faker vs chance)
+    // ---- Duplicative data generators (faker vs chance)
     const hasFaker = hasDep(allDeps, '@faker-js/faker');
     const hasChance = hasDep(allDeps, 'chance');
     addFinding({
@@ -279,10 +295,10 @@ export async function analyzeDependencies(targetDir) {
             : 'No duplication detected.',
         suggestion: hasFaker && hasChance
             ? 'Standardize on one data generator to reduce bundle size and surface area.'
-            : undefined,
+            : 'No action required.',
         file: 'package.json',
     });
-    // ---- 10) Node engine field (helps CI & local alignment)
+    // ---- Node engine field (helps CI & local alignment)
     const hasEngine = !!pkg.engines?.node;
     addFinding({
         title: 'Node engine specified',
@@ -294,7 +310,7 @@ export async function analyzeDependencies(targetDir) {
             : 'Add "engines": { "node": ">=18 <23" } (or whichever LTS you target).',
         file: 'package.json',
     });
-    // ---- 11) ESM/CJS coherence with tooling
+    // ---- ESM/CJS coherence with tooling
     const isESM = pkg.type === 'module';
     const hasTsx = hasDep(allDeps, 'tsx');
     const hasTsNode = hasDep(allDeps, 'ts-node');
@@ -309,43 +325,111 @@ export async function analyzeDependencies(targetDir) {
                     ? 'ESM project using ts-node; ensure loader flags are correct.'
                     : 'ESM project; tsx/loader not detected.'
             : 'CJS project; no special loader needs assumed.',
-        suggestion: isESM ? 'Prefer "tsx" for running TS in ESM projects.' : undefined,
+        suggestion: isESM ? 'Prefer "tsx" for running TS in ESM projects.' : 'No action required.',
         file: 'package.json',
     });
-    // ---- 12) Script suite coverage (lint/format/clean)
+    // ---- Script suite coverage (lint/format/clean)
+    const lintScriptNames = ['lint', 'eslint-lint', 'eslint'];
     addFinding({
         title: 'ESLint lint script exists',
-        status: scripts['lint'] ? 'pass' : 'fail',
+        status: (() => {
+            const present = lintScriptNames.some((k) => !!scripts[k]);
+            return present ? 'pass' : 'fail';
+        })(),
         sev: 'low',
-        message: scripts['lint'] ? `Script "lint": ${scripts['lint']}` : 'Script "lint" missing',
-        suggestion: scripts['lint'] ? undefined : 'Add "lint": "eslint . --max-warnings=0".',
+        message: (() => {
+            const presentKeys = lintScriptNames.filter((k) => !!scripts[k]);
+            if (presentKeys.length === 0) {
+                return ('No lint-related script found (checked common variants: ' +
+                    lintScriptNames.join(', ') +
+                    ').');
+            }
+            const details = presentKeys.map((k) => `"${k}": ${JSON.stringify(scripts[k])}`).join('; ');
+            return `Lint script(s) found: ${presentKeys.join(', ')}. ${details}`;
+        })(),
+        suggestion: (() => {
+            const presentKeys = lintScriptNames.filter((k) => !!scripts[k]);
+            if (presentKeys.length === 0) {
+                return 'Add a lint script: e.g. "lint": "eslint \\"**/*.{ts,js,tsx,jsx}\\""';
+            }
+            return undefined;
+        })(),
         file: 'package.json',
     });
+    const formatNames = [
+        'format',
+        'prettier-format',
+        'prettier-fix',
+        'prettier',
+        'prettier:format',
+        'prettier:fix',
+        'prettier:fmt',
+        'fmt',
+        'format:fix',
+    ];
     addFinding({
-        title: 'Prettier format script exists',
-        status: scripts['format'] ? 'pass' : 'fail',
+        title: 'Prettier / format script present',
+        status: (() => {
+            const present = formatNames.some((k) => !!scripts[k]);
+            return present ? 'pass' : 'fail';
+        })(),
         sev: 'low',
-        message: scripts['format']
-            ? `Script "format": ${scripts['format']}`
-            : 'Script "format" missing',
-        suggestion: scripts['format']
-            ? undefined
-            : 'Add "format": "prettier --write \\"**/*.{ts,js,tsx,jsx,json,md,yml,yaml}\\""',
+        message: (() => {
+            const presentKeys = formatNames.filter((k) => !!scripts[k]);
+            const anyPrettier = anyScriptIncludes(scripts, /\bprettier\b/);
+            if (presentKeys.length === 0) {
+                return ('No format-related script found (checked common variants: ' +
+                    formatNames.join(', ') +
+                    ').');
+            }
+            const details = presentKeys.map((k) => `"${k}": ${JSON.stringify(scripts[k])}`).join('; ');
+            if (anyPrettier || presentKeys.some((k) => /\bprettier\b/.test(scripts[k]))) {
+                return `Format script(s) found: ${presentKeys.join(', ')}. ${details}`;
+            }
+            return `Format script(s) found but none invoke Prettier: ${presentKeys.join(', ')}. ${details}`;
+        })(),
+        suggestion: (() => {
+            const presentKeys = formatNames.filter((k) => !!scripts[k]);
+            const anyPrettier = anyScriptIncludes(scripts, /\bprettier\b/);
+            if (presentKeys.length === 0) {
+                return 'Add a format script: e.g. "format": "prettier --write \\"**/*.{ts,js,tsx,jsx,json,md,yml,yaml}\\""';
+            }
+            if (!anyPrettier) {
+                return ('Ensure your format script runs Prettier (or an equivalent formatter). Example: ' +
+                    '"format": "prettier --write \\"**/*.{ts,js,tsx,jsx,json,md,yml,yaml}\\""');
+            }
+            return undefined;
+        })(),
         file: 'package.json',
     });
-    const hasCleanScript = !!scripts['clean'] &&
-        /(rimraf|rm\s+-rf|del-cli).*(test-results|trace|screenshots|downloads|coverage)/i.test(scripts['clean']);
+    const cleanScriptNames = ['clean', 'cleanup', 'clear', 'logs:clean', 'logs-clean'];
     addFinding({
         title: 'Clean script exists for artifacts',
-        status: hasCleanScript ? 'pass' : 'fail',
+        status: (() => {
+            const present = cleanScriptNames.some((k) => !!scripts[k]);
+            return present ? 'pass' : 'fail';
+        })(),
         sev: 'info',
-        message: hasCleanScript
-            ? `Script "clean": ${scripts['clean']}`
-            : 'Artifact clean script not found.',
-        suggestion: 'Add "clean": "rimraf test-results trace screenshots downloads coverage" to keep repo tidy.',
+        message: (() => {
+            const presentKeys = cleanScriptNames.filter((k) => !!scripts[k]);
+            if (presentKeys.length === 0) {
+                return ('No clean-related script found (checked common variants: ' +
+                    cleanScriptNames.join(', ') +
+                    ').');
+            }
+            const details = presentKeys.map((k) => `"${k}": ${JSON.stringify(scripts[k])}`).join('; ');
+            return `Clean script(s) found: ${presentKeys.join(', ')}. ${details}`;
+        })(),
+        suggestion: (() => {
+            const presentKeys = cleanScriptNames.filter((k) => !!scripts[k]);
+            if (presentKeys.length === 0) {
+                return 'Add a clean script to remove build/test artifacts, e.g. "clean": "rimraf ./dist ./artifacts"';
+            }
+            return undefined;
+        })(),
         file: 'package.json',
     });
-    // ---- 13) Jest/Vitest vs Playwright conflicts (optional heads-up)
+    // ---- Jest/Vitest vs Playwright conflicts (optional heads-up)
     const hasJest = hasDep(allDeps, 'jest') || anyScriptIncludes(scripts, /\bjest\b/);
     const hasVitest = hasDep(allDeps, 'vitest') || anyScriptIncludes(scripts, /\bvitest\b/);
     const mixedRunners = (hasJest || hasVitest) && hasDep(allDeps, '@playwright/test');
@@ -358,18 +442,22 @@ export async function analyzeDependencies(targetDir) {
             : 'Single-runner setup or clear separation assumed.',
         suggestion: mixedRunners
             ? 'Document which runner handles what (e2e vs unit/component) and avoid redundant configs.'
-            : undefined,
+            : 'No action required.',
         file: 'package.json',
     });
-    // ---- 14) Cross-env presence if scripts reference process.env on Windows (soft check)
+    // ---- Cross-env presence if scripts reference process.env on Windows (soft check)
     const usesCrossEnvInScripts = anyScriptIncludes(scripts, /\bcross-env\b/);
+    const hasCrossEnv = hasDep(allDeps, 'cross-env');
     addFinding({
         title: 'cross-env usage',
         status: !usesCrossEnvInScripts || hasDep(allDeps, 'cross-env') ? 'pass' : 'fail',
         sev: usesCrossEnvInScripts ? 'low' : 'info',
         message: usesCrossEnvInScripts
             ? 'cross-env referenced and installed.'
-            : 'cross-env not referenced; skipping.',
+            : 'cross-env not referenced.',
+        suggestion: usesCrossEnvInScripts && !hasCrossEnv
+            ? 'Install "cross-env" or remove its usages from scripts.'
+            : 'No action required.',
         file: 'package.json',
     });
     // ---- Final score
